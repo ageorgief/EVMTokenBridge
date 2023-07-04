@@ -1,0 +1,18 @@
+//GOERLI
+The MyToken contract is deployed to 0x419AC2538eF86904Cf3e9A27e7816314B16e328A
+The MyToken contract owner is 0xd25e31963cC0BD31E94F67A5e1aBC259de27A424
+The WrappedTokenFactory contract is deployed to 0x80160850E1966B2D3617e8Bd0755f6b3EF2CDb81
+The WrappedTokenFactory contract owner is 0xd25e31963cC0BD31E94F67A5e1aBC259de27A424
+The Bridge contract is deployed to 0x06AE7C07228D3795C67EF40CE9e08C0d78e79192
+The Bridge contract owner is 0xd25e31963cC0BD31E94F67A5e1aBC259de27A424
+
+//SEPOLIA
+The MyToken contract is deployed to 0xc962760Cc4a723d82249b9074fbD2b35DAbCf2A5
+The MyToken contract owner is 0xd25e31963cC0BD31E94F67A5e1aBC259de27A424
+The WrappedTokenFactory contract is deployed to 0x11BcCf7694f924Ff2190B3a98d59B1170815Afc8
+The WrappedTokenFactory contract owner is 0xd25e31963cC0BD31E94F67A5e1aBC259de27A424
+The Bridge contract is deployed to 0x5733BC30e18ADa36B23E000D044c94D5c2d3c989
+The Bridge contract owner is 0xd25e31963cC0BD31E94F67A5e1aBC259de27A424
+
+//To do:
+Mapping networks name to Id in CLI //config file (the fast way), get from db (the better way)

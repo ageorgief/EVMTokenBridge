@@ -1,11 +1,8 @@
 
 
 class TokenLockedEventProcessor {
-    constructor(db) {
-        this.db = db;
-    }
     async process(lockerAddress, originTokenAddress, amount, targetChainId, targetAddress, sourceChainId, targetBridgeContract, rawEvent) {
-        console.log("Raw event: ", rawEvent);
+        //console.log("Raw event: ", rawEvent);
 
         try {
             const addReleasableTransaction = await targetBridgeContract.addClaimableToken(targetAddress, sourceChainId, originTokenAddress, amount);

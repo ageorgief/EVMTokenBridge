@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const tokenLockedEventScheme = new mongoose.Schema({
+    _id: mongoose.Types.ObjectId,
     lockerAddress: {
         required: true,
         type: String

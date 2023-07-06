@@ -1,12 +1,13 @@
 const { ethers } = require("ethers");
 const TokenLockedEventProcessor = require("./tokenLockedEventProcessor");
+const Setting = require("../models/setting");
+const TokenLockedEvent = require("../models/tokenLockedEvents");
 const TOKEN_LOCKED = "TokenLocked";
 
 class EventListenerService {
-    constructor(db) {
-        this.db = db;
+    constructor() {
         this.blockchainsMapping = {};
-        this.tokenLockedEventProcessor = new TokenLockedEventProcessor(db);
+        this.tokenLockedEventProcessor = new TokenLockedEventProcessor();
     }
 
 
@@ -15,16 +16,50 @@ class EventListenerService {
         // const sepoliaContractAddress = "0x5733BC30e18ADa36B23E000D044c94D5c2d3c989";
         // const goreliContractAddress = "0x06AE7C07228D3795C67EF40CE9e08C0d78e79192";
 
-        await this.initialize();
+        const settings = await Setting.find();
+        const settingsMap = {};
+        settings.forEach(setting => settingsMap[setting.key] = setting.value);
+
+        await this.initialize(settingsMap);
         //console.log("mapp:", this.blockchainsMapping);
 
-        Object.getOwnPropertyNames(this.blockchainsMapping).forEach(chainId => {
+        //Use DB
+        //Implement lastProcessedBlock logic
+        //Notes: first websocketListener.start, second queryFilter.start(startBlock from db +1), handle duplicates in database
+
+        //For the api endpoints: we should store data for bridged tokens(Bridge token is token that has been claimed on chain 2 after it has been locked on chain1)
+        //For the api endpoints: we should store data for all tokens that have been bridged(....)
+        Object.getOwnPropertyNames(this.blockchainsMapping).forEach(async chainId => {
             const chain = this.blockchainsMapping[chainId];
-            console.log("Chain:", chain);
+            let lastProcessedBlock = settingsMap['lastProcessedBlock_' + chainId] || 0;
             chain.bridgeContract.on(TOKEN_LOCKED, async (lockerAddress, originTokenAddress, amount, targetChainId, targetAddress, rawEvent) => {
                 const contract = this.blockchainsMapping[targetChainId].bridgeContract;
-                this.tokenLockedEventProcessor.process(lockerAddress, originTokenAddress, amount, targetChainId, targetAddress, chainId, contract, rawEvent);
+                await this.tokenLockedEventProcessor.process(lockerAddress, originTokenAddress, amount, targetChainId, targetAddress, chainId, contract, rawEvent);
+
+                if(rawEvent.blockNumber > lastProcessedBlock && chain.lastProcessedBlock != lastProcessedBlock) {
+                    await Setting.updateOne({key:'lastProcessedBlock_' + chainId}, { $set: {value: lastProcessedBlock}}).exec();
+                    lastProcessedBlock += 1;
+                }
             });
+
+            const events = await chain.bridgeContract.queryFilter(TOKEN_LOCKED, (lastProcessedBlock + 1) || 0);
+            
+            let maxProcessedBlock = - 1;
+            events.forEach(async event => {
+                //console.log("BLOCKCHAINS MAPPING:", this.blockchainsMapping);
+                const contract = this.blockchainsMapping[parseInt(event.args[3])].bridgeContract;
+                await this.tokenLockedEventProcessor.process(event.args[0], event.args[1], event.args[2], event.args[3], event.args[4], chainId, contract, event);
+                
+                if(maxProcessedBlock < event.blockNumber) {
+                    maxProcessedBlock = event.blockNumber
+                };
+            });
+
+            if(maxProcessedBlock > lastProcessedBlock) {
+                lastProcessedBlock = maxProcessedBlock;
+                await Setting.updateOne({key:'lastProcessedBlock_' + chainId}, { $set: {value: lastProcessedBlock}}).exec();
+            }
+
             console.log('Started Listening on chain ' + chainId);
         });
 
@@ -44,7 +79,7 @@ class EventListenerService {
         // const events = await bridgeContractSepolia.queryFilter(TOKEN_LOCKED, 3811669); 
         // console.log(events);
 
-        //Notes: first websocketListener.start, second queryFilter.start(startBlock from db +1), handle duplicates in database
+
     }
 
     // async start() {
@@ -65,525 +100,25 @@ class EventListenerService {
     //     });
     // }
 
-    async initialize() {
-        //To do: get from database
-        const contractOwnerPrivateKey = "33fafaaa480220d833d95a04564e9a68d3c39df10091697c9e82a7361145bead";
-        const contractAbi = [
-            {
-                "inputs": [
-                    {
-                        "internalType": "address",
-                        "name": "_wrappedTokenFactory",
-                        "type": "address"
-                    }
-                ],
-                "stateMutability": "nonpayable",
-                "type": "constructor"
-            },
-            {
-                "anonymous": false,
-                "inputs": [
-                    {
-                        "indexed": true,
-                        "internalType": "address",
-                        "name": "previousOwner",
-                        "type": "address"
-                    },
-                    {
-                        "indexed": true,
-                        "internalType": "address",
-                        "name": "newOwner",
-                        "type": "address"
-                    }
-                ],
-                "name": "OwnershipTransferred",
-                "type": "event"
-            },
-            {
-                "anonymous": false,
-                "inputs": [
-                    {
-                        "indexed": false,
-                        "internalType": "address",
-                        "name": "burnerAddress",
-                        "type": "address"
-                    },
-                    {
-                        "indexed": false,
-                        "internalType": "address",
-                        "name": "originTokenAddress",
-                        "type": "address"
-                    },
-                    {
-                        "indexed": false,
-                        "internalType": "uint256",
-                        "name": "amount",
-                        "type": "uint256"
-                    },
-                    {
-                        "indexed": false,
-                        "internalType": "uint256",
-                        "name": "targetChainId",
-                        "type": "uint256"
-                    },
-                    {
-                        "indexed": false,
-                        "internalType": "address",
-                        "name": "releaserAddress",
-                        "type": "address"
-                    }
-                ],
-                "name": "TokenBurned",
-                "type": "event"
-            },
-            {
-                "anonymous": false,
-                "inputs": [
-                    {
-                        "indexed": false,
-                        "internalType": "address",
-                        "name": "claimerAddress",
-                        "type": "address"
-                    },
-                    {
-                        "indexed": false,
-                        "internalType": "address",
-                        "name": "wrappedTokenAddress",
-                        "type": "address"
-                    },
-                    {
-                        "indexed": false,
-                        "internalType": "uint256",
-                        "name": "amount",
-                        "type": "uint256"
-                    }
-                ],
-                "name": "TokenClaimed",
-                "type": "event"
-            },
-            {
-                "anonymous": false,
-                "inputs": [
-                    {
-                        "indexed": false,
-                        "internalType": "address",
-                        "name": "lockerAddress",
-                        "type": "address"
-                    },
-                    {
-                        "indexed": false,
-                        "internalType": "address",
-                        "name": "originTokenAddress",
-                        "type": "address"
-                    },
-                    {
-                        "indexed": false,
-                        "internalType": "uint256",
-                        "name": "amount",
-                        "type": "uint256"
-                    },
-                    {
-                        "indexed": false,
-                        "internalType": "uint256",
-                        "name": "targetChainId",
-                        "type": "uint256"
-                    },
-                    {
-                        "indexed": false,
-                        "internalType": "address",
-                        "name": "claimerAddress",
-                        "type": "address"
-                    }
-                ],
-                "name": "TokenLocked",
-                "type": "event"
-            },
-            {
-                "anonymous": false,
-                "inputs": [
-                    {
-                        "indexed": false,
-                        "internalType": "address",
-                        "name": "releaserAddress",
-                        "type": "address"
-                    },
-                    {
-                        "indexed": false,
-                        "internalType": "address",
-                        "name": "originTokenAddress",
-                        "type": "address"
-                    },
-                    {
-                        "indexed": false,
-                        "internalType": "uint256",
-                        "name": "amount",
-                        "type": "uint256"
-                    }
-                ],
-                "name": "TokenReleased",
-                "type": "event"
-            },
-            {
-                "inputs": [
-                    {
-                        "internalType": "address",
-                        "name": "claimer",
-                        "type": "address"
-                    },
-                    {
-                        "internalType": "uint256",
-                        "name": "sourceChainId",
-                        "type": "uint256"
-                    },
-                    {
-                        "internalType": "address",
-                        "name": "token",
-                        "type": "address"
-                    },
-                    {
-                        "internalType": "uint256",
-                        "name": "amount",
-                        "type": "uint256"
-                    }
-                ],
-                "name": "addClaimableToken",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            },
-            {
-                "inputs": [
-                    {
-                        "internalType": "address",
-                        "name": "releaser",
-                        "type": "address"
-                    },
-                    {
-                        "internalType": "address",
-                        "name": "token",
-                        "type": "address"
-                    },
-                    {
-                        "internalType": "uint256",
-                        "name": "amount",
-                        "type": "uint256"
-                    }
-                ],
-                "name": "addReleasableToken",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            },
-            {
-                "inputs": [
-                    {
-                        "internalType": "address",
-                        "name": "wrappedToken",
-                        "type": "address"
-                    },
-                    {
-                        "internalType": "uint256",
-                        "name": "amount",
-                        "type": "uint256"
-                    },
-                    {
-                        "internalType": "uint256",
-                        "name": "targetChainId",
-                        "type": "uint256"
-                    },
-                    {
-                        "internalType": "address",
-                        "name": "targetAddress",
-                        "type": "address"
-                    }
-                ],
-                "name": "burnToken",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            },
-            {
-                "inputs": [
-                    {
-                        "internalType": "address",
-                        "name": "token",
-                        "type": "address"
-                    },
-                    {
-                        "internalType": "uint256",
-                        "name": "sourceChainId",
-                        "type": "uint256"
-                    }
-                ],
-                "name": "claimToken",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            },
-            {
-                "inputs": [
-                    {
-                        "internalType": "address",
-                        "name": "",
-                        "type": "address"
-                    },
-                    {
-                        "internalType": "uint256",
-                        "name": "",
-                        "type": "uint256"
-                    },
-                    {
-                        "internalType": "address",
-                        "name": "",
-                        "type": "address"
-                    }
-                ],
-                "name": "claimableTokens",
-                "outputs": [
-                    {
-                        "internalType": "uint256",
-                        "name": "",
-                        "type": "uint256"
-                    }
-                ],
-                "stateMutability": "view",
-                "type": "function"
-            },
-            {
-                "inputs": [
-                    {
-                        "internalType": "address",
-                        "name": "",
-                        "type": "address"
-                    }
-                ],
-                "name": "feeBalances",
-                "outputs": [
-                    {
-                        "internalType": "uint256",
-                        "name": "",
-                        "type": "uint256"
-                    }
-                ],
-                "stateMutability": "view",
-                "type": "function"
-            },
-            {
-                "inputs": [
-                    {
-                        "internalType": "address",
-                        "name": "token",
-                        "type": "address"
-                    },
-                    {
-                        "internalType": "uint256",
-                        "name": "amount",
-                        "type": "uint256"
-                    },
-                    {
-                        "internalType": "uint256",
-                        "name": "targetChainId",
-                        "type": "uint256"
-                    },
-                    {
-                        "internalType": "address",
-                        "name": "targetAddress",
-                        "type": "address"
-                    }
-                ],
-                "name": "lockToken",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            },
-            {
-                "inputs": [
-                    {
-                        "internalType": "uint256",
-                        "name": "",
-                        "type": "uint256"
-                    },
-                    {
-                        "internalType": "address",
-                        "name": "",
-                        "type": "address"
-                    }
-                ],
-                "name": "originTokenByWrappedTokenByChain",
-                "outputs": [
-                    {
-                        "internalType": "address",
-                        "name": "",
-                        "type": "address"
-                    }
-                ],
-                "stateMutability": "view",
-                "type": "function"
-            },
-            {
-                "inputs": [],
-                "name": "owner",
-                "outputs": [
-                    {
-                        "internalType": "address",
-                        "name": "",
-                        "type": "address"
-                    }
-                ],
-                "stateMutability": "view",
-                "type": "function"
-            },
-            {
-                "inputs": [
-                    {
-                        "internalType": "address",
-                        "name": "",
-                        "type": "address"
-                    },
-                    {
-                        "internalType": "address",
-                        "name": "",
-                        "type": "address"
-                    }
-                ],
-                "name": "releasableTokens",
-                "outputs": [
-                    {
-                        "internalType": "uint256",
-                        "name": "",
-                        "type": "uint256"
-                    }
-                ],
-                "stateMutability": "view",
-                "type": "function"
-            },
-            {
-                "inputs": [
-                    {
-                        "internalType": "address",
-                        "name": "originalToken",
-                        "type": "address"
-                    }
-                ],
-                "name": "releaseToken",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            },
-            {
-                "inputs": [],
-                "name": "renounceOwnership",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            },
-            {
-                "inputs": [
-                    {
-                        "internalType": "uint8",
-                        "name": "_feePercentage",
-                        "type": "uint8"
-                    }
-                ],
-                "name": "setFeePercentage",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            },
-            {
-                "inputs": [
-                    {
-                        "internalType": "address",
-                        "name": "newOwner",
-                        "type": "address"
-                    }
-                ],
-                "name": "transferOwnership",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            },
-            {
-                "inputs": [
-                    {
-                        "internalType": "address",
-                        "name": "token",
-                        "type": "address"
-                    },
-                    {
-                        "internalType": "uint256",
-                        "name": "amount",
-                        "type": "uint256"
-                    },
-                    {
-                        "internalType": "address",
-                        "name": "recipient",
-                        "type": "address"
-                    }
-                ],
-                "name": "withdrawTokenFee",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            },
-            {
-                "inputs": [
-                    {
-                        "internalType": "uint256",
-                        "name": "",
-                        "type": "uint256"
-                    },
-                    {
-                        "internalType": "address",
-                        "name": "",
-                        "type": "address"
-                    }
-                ],
-                "name": "wrappedTokenByOriginTokenByChain",
-                "outputs": [
-                    {
-                        "internalType": "address",
-                        "name": "",
-                        "type": "address"
-                    }
-                ],
-                "stateMutability": "view",
-                "type": "function"
-            },
-            {
-                "inputs": [],
-                "name": "wrappedTokenFactory",
-                "outputs": [
-                    {
-                        "internalType": "contract IWrappedTokenFactory",
-                        "name": "",
-                        "type": "address"
-                    }
-                ],
-                "stateMutability": "view",
-                "type": "function"
-            }
-        ];
-        //const sepoliaContractAddress = "0x5733BC30e18ADa36B23E000D044c94D5c2d3c989";
-        //const goreliContractAddress = "0x06AE7C07228D3795C67EF40CE9e08C0d78e79192";
-
-        const infuraApiKey = "9f30ad62c0434218964bb38f1d2def95";
-        const blockchains = [{ chainId: 11155111, bridgeContractAddress: '0x5733BC30e18ADa36B23E000D044c94D5c2d3c989' },
-        { chainId: 5, bridgeContractAddress: '0x06AE7C07228D3795C67EF40CE9e08C0d78e79192' }]
-
+    async initialize(settingsMap) {
+        const contractOwnerPrivateKey = settingsMap['contractOwnerPrivateKey'];
+        const contractAbi = settingsMap['contractAbi'];
+        const infuraApiKey = settingsMap['infuraApiKey'];
+        const blockchains = settingsMap['blockchains'];
 
         blockchains.forEach(blockchain => {
             const provider = new ethers.InfuraProvider(
                 blockchain.chainId,
                 infuraApiKey
             );
+            console.log("BLOCKCHAIN ID:" + typeof blockchain.chainId);
 
             const ownerWallet = new ethers.Wallet(contractOwnerPrivateKey, provider);
 
             const bridgeContract = new ethers.Contract(blockchain.bridgeContractAddress, contractAbi, ownerWallet);
 
             this.blockchainsMapping[blockchain.chainId] = { provider: provider, bridgeContract: bridgeContract };
-
+                
         })
     }
 }

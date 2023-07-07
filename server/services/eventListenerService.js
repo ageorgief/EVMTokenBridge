@@ -1,7 +1,7 @@
 const { ethers } = require("ethers");
 const TokenLockedEventProcessor = require("./tokenLockedEventProcessor");
 const Setting = require("../models/setting");
-const TokenLockedEvent = require("../models/tokenLockedEvents");
+const TokenLockedEvent = require("../models/tokenLockedEvent");
 const TOKEN_LOCKED = "TokenLocked";
 
 class EventListenerService {
@@ -20,48 +20,56 @@ class EventListenerService {
         const settingsMap = {};
         settings.forEach(setting => settingsMap[setting.key] = setting.value);
 
-        await this.initialize(settingsMap);
+        this.initialize(settingsMap);
         //console.log("mapp:", this.blockchainsMapping);
 
-        //Use DB
-        //Implement lastProcessedBlock logic
         //Notes: first websocketListener.start, second queryFilter.start(startBlock from db +1), handle duplicates in database
 
         //For the api endpoints: we should store data for bridged tokens(Bridge token is token that has been claimed on chain 2 after it has been locked on chain1)
         //For the api endpoints: we should store data for all tokens that have been bridged(....)
-        Object.getOwnPropertyNames(this.blockchainsMapping).forEach(async chainId => {
+        for (const chainId in this.blockchainsMapping) {
             const chain = this.blockchainsMapping[chainId];
             let lastProcessedBlock = settingsMap['lastProcessedBlock_' + chainId] || 0;
             chain.bridgeContract.on(TOKEN_LOCKED, async (lockerAddress, originTokenAddress, amount, targetChainId, targetAddress, rawEvent) => {
-                const contract = this.blockchainsMapping[targetChainId].bridgeContract;
+                const contract = this.blockchainsMapping[targetChainId.toString()].bridgeContract;
                 await this.tokenLockedEventProcessor.process(lockerAddress, originTokenAddress, amount, targetChainId, targetAddress, chainId, contract, rawEvent);
 
-                if(rawEvent.blockNumber > lastProcessedBlock && chain.lastProcessedBlock != lastProcessedBlock) {
-                    await Setting.updateOne({key:'lastProcessedBlock_' + chainId}, { $set: {value: lastProcessedBlock}}).exec();
+                if (rawEvent.blockNumber > lastProcessedBlock && chain.lastProcessedBlock != lastProcessedBlock) {
+                    await Setting.updateOne({ key: 'lastProcessedBlock_' + chainId }, { $set: { value: lastProcessedBlock } }).exec();
                     lastProcessedBlock += 1;
                 }
             });
 
-            const events = await chain.bridgeContract.queryFilter(TOKEN_LOCKED, (lastProcessedBlock + 1) || 0);
-            
-            let maxProcessedBlock = - 1;
-            events.forEach(async event => {
-                //console.log("BLOCKCHAINS MAPPING:", this.blockchainsMapping);
-                const contract = this.blockchainsMapping[parseInt(event.args[3])].bridgeContract;
+            const events = await chain.bridgeContract.queryFilter(TOKEN_LOCKED, (lastProcessedBlock + 1));
+            console.log('eventsCount=', events.length);
+
+            let maxProcessedBlock = -1;
+            for (const event of events) {
+                const targetBlockchain = this.blockchainsMapping[event.args[3].toString()];
+
+                if (!targetBlockchain) {
+                    console.log('Unknown blockchain: ', event.args[3]);
+                    continue;
+                }
+
+                const contract = targetBlockchain.bridgeContract;
                 await this.tokenLockedEventProcessor.process(event.args[0], event.args[1], event.args[2], event.args[3], event.args[4], chainId, contract, event);
-                
-                if(maxProcessedBlock < event.blockNumber) {
+
+                console.log(event);
+                if (maxProcessedBlock < event.blockNumber) {
                     maxProcessedBlock = event.blockNumber
                 };
-            });
-
-            if(maxProcessedBlock > lastProcessedBlock) {
-                lastProcessedBlock = maxProcessedBlock;
-                await Setting.updateOne({key:'lastProcessedBlock_' + chainId}, { $set: {value: lastProcessedBlock}}).exec();
             }
 
-            console.log('Started Listening on chain ' + chainId);
-        });
+            console.log('maxPrb=', maxProcessedBlock);
+
+            if (maxProcessedBlock > lastProcessedBlock) {
+                lastProcessedBlock = maxProcessedBlock;
+                await Setting.updateOne({ key: 'lastProcessedBlock_' + chainId }, { $set: { value: lastProcessedBlock } }, { upsert: true });
+            }
+
+            //console.log('Started Listening on chain ' + chainId);
+        }
 
 
         // // Start listening for the TokenLocked event
@@ -100,7 +108,7 @@ class EventListenerService {
     //     });
     // }
 
-    async initialize(settingsMap) {
+    initialize(settingsMap) {
         const contractOwnerPrivateKey = settingsMap['contractOwnerPrivateKey'];
         const contractAbi = settingsMap['contractAbi'];
         const infuraApiKey = settingsMap['infuraApiKey'];
@@ -111,15 +119,13 @@ class EventListenerService {
                 blockchain.chainId,
                 infuraApiKey
             );
-            console.log("BLOCKCHAIN ID:" + typeof blockchain.chainId);
 
             const ownerWallet = new ethers.Wallet(contractOwnerPrivateKey, provider);
 
             const bridgeContract = new ethers.Contract(blockchain.bridgeContractAddress, contractAbi, ownerWallet);
 
-            this.blockchainsMapping[blockchain.chainId] = { provider: provider, bridgeContract: bridgeContract };
-                
-        })
+            this.blockchainsMapping[blockchain.chainId.toString()] = { provider: provider, bridgeContract: bridgeContract };
+        });
     }
 }
 

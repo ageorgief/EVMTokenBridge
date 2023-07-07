@@ -12,15 +12,20 @@ const tokenLockedEventScheme = new mongoose.Schema({
     },
     amount: {
         required: true,
-        type: Number
+        type: BigInt
     },
     targetChainId: {
         required: true,
-        type: Number
+        type: BigInt
     },
     claimerAddress: {
         required: true,
         type: String
+    },
+    transactionHash: {
+        required: true,
+        type: String,
+        unique: true
     }
 })
 

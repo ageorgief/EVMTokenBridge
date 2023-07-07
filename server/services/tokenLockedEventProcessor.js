@@ -1,16 +1,37 @@
+const TokenLockedEvent = require("../models/tokenLockedEvent");
+const mongoose = require('mongoose')
 
 
 class TokenLockedEventProcessor {
-    async process(lockerAddress, originTokenAddress, amount, targetChainId, targetAddress, sourceChainId, targetBridgeContract, rawEvent) {
-        //console.log("Raw event: ", rawEvent);
+    async process(lockerAddress, originTokenAddress, amount, targetChainId, claimerAddress, sourceChainId, targetBridgeContract, rawEvent) {
+        const transactionHash = rawEvent.transactionHash;
+
+        const existingEvent = await TokenLockedEvent.findOne({ transactionHash });
+
+        if (existingEvent) {
+            return;
+        }
 
         try {
-            const addReleasableTransaction = await targetBridgeContract.addClaimableToken(targetAddress, sourceChainId, originTokenAddress, amount);
+            const addReleasableTransaction = await targetBridgeContract.addClaimableToken(claimerAddress, sourceChainId, originTokenAddress, amount);
             await addReleasableTransaction.wait();
             console.log('Transaction successful:', addReleasableTransaction.hash);
         } catch (error) {
             console.error('Error adding claimable token:', error);
+            return;
         }
+
+        const newEvent = new TokenLockedEvent({
+            _id: new mongoose.Types.ObjectId,
+            lockerAddress: lockerAddress,
+            originTokenAddress: originTokenAddress,
+            amount: amount,
+            targetChainId: targetChainId,
+            claimerAddress: claimerAddress,
+            transactionHash: transactionHash
+        });
+        
+        await newEvent.save();
     }
 }
 

@@ -14,6 +14,10 @@ const tokenLockedEventScheme = new mongoose.Schema({
         required: true,
         type: BigInt
     },
+    sourceChainId: {
+        required: true,
+        type: BigInt
+    },
     targetChainId: {
         required: true,
         type: BigInt

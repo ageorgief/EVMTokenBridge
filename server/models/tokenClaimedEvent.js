@@ -1,14 +1,28 @@
 const mongoose = require('mongoose');
 
 const tokenClaimedEventScheme = new mongoose.Schema({
-    name: {
+    _id: mongoose.Types.ObjectId,
+    claimerAddress: {
         required: true,
         type: String
     },
-    age: {
+    wrappedTokenAddress: {
         required: true,
-        type: Number
+        type: String
+    },
+    amount: {
+        required: true,
+        type: BigInt
+    },
+    sourceChainId: {
+        required: true,
+        type: BigInt
+    },
+    transactionHash: {
+        required: true,
+        type: String,
+        unique: true
     }
 })
 
-module.exports = mongoose.model('Data', tokenClaimedEventScheme)
+module.exports = mongoose.model('TokenClaimedEvent', tokenClaimedEventScheme)

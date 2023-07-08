@@ -5,7 +5,6 @@ const mongoose = require('mongoose')
 class TokenLockedEventProcessor {
     async process(lockerAddress, originTokenAddress, amount, targetChainId, claimerAddress, sourceChainId, targetBridgeContract, transactionHash) {
         const existingEvent = await TokenLockedEvent.findOne({ transactionHash });
-
         if (existingEvent) {
             return;
         }
@@ -24,6 +23,7 @@ class TokenLockedEventProcessor {
             lockerAddress: lockerAddress,
             originTokenAddress: originTokenAddress,
             amount: amount,
+            sourceChainId: sourceChainId,
             targetChainId: targetChainId,
             claimerAddress: claimerAddress,
             transactionHash: transactionHash

@@ -1,13 +1,16 @@
 const { ethers } = require("ethers");
-const TokenLockedEventProcessor = require("./tokenLockedEventProcessor");
 const Setting = require("../models/setting");
-const TokenLockedEvent = require("../models/tokenLockedEvent");
+const TokenLockedEventProcessor = require("./tokenLockedEventProcessor");
+const TokenClaimedEventProcessor = require("./tokenClaimedEventProcessor");
+
 const TOKEN_LOCKED = "TokenLocked";
+const TOKEN_CLAIMED = "TokenClaimed";
 
 class EventListenerService {
     constructor() {
         this.blockchainsMapping = {};
         this.tokenLockedEventProcessor = new TokenLockedEventProcessor();
+        this.tokenClaimedEventProcessor = new TokenClaimedEventProcessor();
     }
 
     async start() {
@@ -23,8 +26,10 @@ class EventListenerService {
             const chain = this.blockchainsMapping[chainId];
 
             this.startListeningForTokenLockedEvents(chain, chainId);
+            this.startListeningForTokenClaimedEvents(chain, chainId);
 
             await this.queryTokenLockedEvents(chain, chainId);
+            await this.queryTokenClaimedEvents(chain, chainId);
 
             console.log('Started working on blockchain ' + chainId);
         }
@@ -56,6 +61,22 @@ class EventListenerService {
         });
     }
 
+    startListeningForTokenClaimedEvents(chain, chainId) {
+        chain.bridgeContract.on(TOKEN_CLAIMED, async (claimerAddress, wrappedTokenAddress, amount, rawEvent) => {
+            await this.tokenClaimedEventProcessor.process(
+                claimerAddress,
+                wrappedTokenAddress,
+                amount,
+                chainId,
+                rawEvent.log.transactionHash);
+
+            if (rawEvent.log.blockNumber > chain.lastProcessedBlock + 1) {
+                chain.lastProcessedBlock = rawEvent.log.blockNumber - 1;
+                await Setting.updateOne({ key: 'lastProcessedBlock_' + chainId }, { $set: { value: chain.lastProcessedBlock } }, { upsert: true });
+            }
+        });
+    }
+
     async queryTokenLockedEvents(chain, chainId) {
         const events = await chain.bridgeContract.queryFilter(TOKEN_LOCKED, chain.lastProcessedBlock + 1);
 
@@ -78,6 +99,30 @@ class EventListenerService {
                 event.args[4],
                 chainId,
                 contract,
+                event.transactionHash);
+
+            if (maxProcessedBlock < event.blockNumber) {
+                maxProcessedBlock = event.blockNumber;
+            }
+        }
+
+        if (maxProcessedBlock > chain.lastProcessedBlock) {
+            chain.lastProcessedBlock = maxProcessedBlock;
+            await Setting.updateOne({ key: 'lastProcessedBlock_' + chainId }, { $set: { value: chain.lastProcessedBlock } }, { upsert: true });
+        }
+    }
+
+    async queryTokenClaimedEvents(chain, chainId) {
+        const events = await chain.bridgeContract.queryFilter(TOKEN_CLAIMED, chain.lastProcessedBlock + 1);
+
+        let maxProcessedBlock = chain.lastProcessedBlock;
+
+        for (const event of events) {
+            await this.tokenClaimedEventProcessor.process(
+                event.args[0],
+                event.args[1],
+                event.args[2],
+                chainId,
                 event.transactionHash);
 
             if (maxProcessedBlock < event.blockNumber) {

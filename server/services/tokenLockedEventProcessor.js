@@ -3,9 +3,7 @@ const mongoose = require('mongoose')
 
 
 class TokenLockedEventProcessor {
-    async process(lockerAddress, originTokenAddress, amount, targetChainId, claimerAddress, sourceChainId, targetBridgeContract, rawEvent) {
-        const transactionHash = rawEvent.transactionHash;
-
+    async process(lockerAddress, originTokenAddress, amount, targetChainId, claimerAddress, sourceChainId, targetBridgeContract, transactionHash) {
         const existingEvent = await TokenLockedEvent.findOne({ transactionHash });
 
         if (existingEvent) {
@@ -30,7 +28,7 @@ class TokenLockedEventProcessor {
             claimerAddress: claimerAddress,
             transactionHash: transactionHash
         });
-        
+
         await newEvent.save();
     }
 }

@@ -12,7 +12,8 @@ contract WrappedTokenFactory is IWrappedTokenFactory, Ownable {
         string memory symbol = string(abi.encodePacked("W", _symbol));
         
         address wrappedToken = address(new WrappedToken(name, symbol));
-        
+        WrappedToken(wrappedToken).transferOwnership(msg.sender);
+
         emit WrappedTokenCreated(wrappedToken, symbol);
         
         return wrappedToken;

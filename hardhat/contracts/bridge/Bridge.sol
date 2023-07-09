@@ -13,7 +13,7 @@ contract Bridge is Ownable {
 
     mapping(address => uint256) public feeBalances; //collected fee tokenAddress -> amount
     mapping(uint256 => mapping(address => address))
-        public wrappedTokenByOriginTokenByChain; // chainId => OriginToken Address => SideToken Address
+        public wrappedTokenByOriginTokenByChain; // chainId => SideToken Address => OriginToken Address
     mapping(uint256 => mapping(address => address))
         public originTokenByWrappedTokenByChain; // chainId => OriginToken Address => SideToken Address
     mapping(address => mapping(uint256 => mapping(address => uint256)))
@@ -50,7 +50,7 @@ contract Bridge is Ownable {
         _;
     }
     modifier positiveChainId(uint256 chainId) {
-        require(chainId >= 0, "Bridge: chainId has to be greater than 0");
+        require(chainId > 0, "Bridge: chainId has to be greater than 0");
         _;
     }
     modifier notNullTokenAddress(address token) {
@@ -106,11 +106,10 @@ contract Bridge is Ownable {
         );
     }
 
-    function claimToken(address token, uint256 sourceChainId)
-        external
-        notNullTokenAddress(token)
-        positiveChainId(sourceChainId)
-    {
+    function claimToken(
+        address token,
+        uint256 sourceChainId
+    ) external notNullTokenAddress(token) positiveChainId(sourceChainId) {
         uint256 amount = claimableTokens[msg.sender][sourceChainId][token];
 
         require(amount > 0, "Bridge: no claimable token");
@@ -119,15 +118,10 @@ contract Bridge is Ownable {
             address wrappedTokenAddress = _createWrappedToken(token);
             _mapTokens(sourceChainId, token, wrappedTokenAddress);
         }
-
-        address wrappedToken = wrappedTokenByOriginTokenByChain[sourceChainId][
-            token
-        ];
-        //address wrappedTokenAddress = wwrappedTokenAddress;
+        address wrappedToken = wrappedTokenByOriginTokenByChain[sourceChainId][token];
 
         WrappedToken(wrappedToken).mint(msg.sender, amount);
 
-        //To do: check how to remove mapping values
         claimableTokens[msg.sender][sourceChainId][token] = 0;
 
         emit TokenClaimed(msg.sender, wrappedToken, amount);
@@ -156,15 +150,14 @@ contract Bridge is Ownable {
         );
     }
 
-    function releaseToken(address originalToken)
-        external
-        notNullTokenAddress(originalToken)
-    {
+    function releaseToken(
+        address originalToken
+    ) external notNullTokenAddress(originalToken) {
         uint256 amount = releasableTokens[msg.sender][originalToken];
+    
+        require(amount > 0, "Bridge: no releasable token");
 
-        require(amount > 0, "Bridge: no releasable tokens");
-
-        IERC20(originalToken).transferFrom(address(this), msg.sender, amount);
+        IERC20(originalToken).transfer(msg.sender, amount);
 
         releasableTokens[msg.sender][originalToken] = 0;
 
@@ -193,33 +186,19 @@ contract Bridge is Ownable {
         uint256 amount,
         address recipient
     ) external onlyOwner {
-        IERC20(token).transferFrom(address(this), recipient, amount);
+        IERC20(token).transfer(recipient, amount);
     }
 
-    function _createWrappedToken(address originalTokenAddress)
-        internal
-        returns (address)
-    {
+    function _createWrappedToken(
+        address originalTokenAddress
+    ) internal returns (address) {
         ERC20 originalToken = ERC20(originalTokenAddress);
         string memory tokenName = originalToken.name();
         string memory tokenSymbol = originalToken.symbol();
 
-        // Call the createWrappedToken function in tokenFactory
-        (bool success, bytes memory result) = address(wrappedTokenFactory)
-            .delegatecall(
-                abi.encodeWithSignature(
-                    "createWrappedToken(string,string)",
-                    tokenName,
-                    tokenSymbol
-                )
-            );
-        // Handle the success or failure of the delegatecall
-        require(
-            success,
-            "Failed to call createWrappedToken function in WrappedTokenFactory"
-        );
+        address wrappedTokenAddress = wrappedTokenFactory.createWrappedToken(tokenName,tokenSymbol);
 
-        return abi.decode(result, (address));
+        return wrappedTokenAddress;
     }
 
     function _mapTokens(
@@ -235,11 +214,10 @@ contract Bridge is Ownable {
         ] = originalToken;
     }
 
-    function _tokenKnown(uint256 sourceChainId, address originalTokenAddress)
-        internal
-        view
-        returns (bool)
-    {
+    function _tokenKnown(
+        uint256 sourceChainId,
+        address originalTokenAddress
+    ) internal view returns (bool) {
         return (wrappedTokenByOriginTokenByChain[sourceChainId][
             originalTokenAddress
         ] != NULL_ADDRESS);

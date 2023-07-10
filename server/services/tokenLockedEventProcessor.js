@@ -4,15 +4,17 @@ const mongoose = require('mongoose')
 
 class TokenLockedEventProcessor {
     async process(lockerAddress, originTokenAddress, amount, targetChainId, claimerAddress, sourceChainId, targetBridgeContract, transactionHash) {
+        console.log('Started proccessing TokenLocked event for transaction:', transactionHash, ' on chain:', sourceChainId);
+        
         const existingEvent = await TokenLockedEvent.findOne({ transactionHash });
         if (existingEvent) {
             return;
         }
 
         try {
-            const addReleasableTransaction = await targetBridgeContract.addClaimableToken(claimerAddress, sourceChainId, originTokenAddress, amount);
-            await addReleasableTransaction.wait();
-            console.log('Transaction successful:', addReleasableTransaction.hash);
+            const addClaimableTransaction = await targetBridgeContract.addClaimableToken(claimerAddress, sourceChainId, originTokenAddress, amount);
+            await addClaimableTransaction.wait();
+            console.log('AddClaimableToken transaction successful:', addClaimableTransaction.hash);
         } catch (error) {
             console.error('Error adding claimable token:', error);
             return;
@@ -30,6 +32,8 @@ class TokenLockedEventProcessor {
         });
 
         await newEvent.save();
+
+        console.log('TokenLocked event was processed successfully for transaction:', transactionHash, ' on chain:', sourceChainId);
     }
 }
 

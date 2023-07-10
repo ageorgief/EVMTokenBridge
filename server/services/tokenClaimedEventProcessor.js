@@ -4,6 +4,8 @@ const mongoose = require('mongoose')
 
 class TokenClaimedEventProcessor {
     async process(claimerAddress, wrappedTokenAddress, amount, sourceChainId, transactionHash) {
+        console.log('Started proccessing TokenClaimed event for transaction:', transactionHash, ' on chain:', sourceChainId);
+
         const existingEvent = await TokenClaimedEvent.findOne({ transactionHash });
         if (existingEvent) {
             return;
@@ -19,6 +21,8 @@ class TokenClaimedEventProcessor {
         });
 
         await newEvent.save();
+
+        console.log('TokenClaimed event was processed successfully for transaction:', transactionHash, ' on chain:', sourceChainId);
     }
 }
 

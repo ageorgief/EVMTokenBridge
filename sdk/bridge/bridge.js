@@ -1,111 +1,92 @@
 const { ethers } = require("ethers");
-const BridgeAbi = require('../abi/bridge/Bridge.json')
+const BridgeContract = require('../abi/bridge/Bridge.json');
+const ERC20Contract = require('../abi/token/ERC20.json');
+const WrappedTokenFactory = require('../abi/tokenfactory/WrappedTokenFactory.json');
+const WrappedToken = require('../abi/token/WrappedToken.json');
+const MyToken = require('../abi/token/MyToken.json');
 
 
 const INFURA_API_KEY = '9f30ad62c0434218964bb38f1d2def95';
-const OWNER_PRIVATE_KEY = '33fafaaa480220d833d95a04564e9a68d3c39df10091697c9e82a7361145bead';
 
 class Bridge {
-    // constructor(contractAddress, providerUrl) {
-    // const provider = new ethers.providers.JsonRpcProvider("http://localhost:8545");
-    // const userWallet = new ethers.Wallet("0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d", provider);
-    // const contractAddress = "0x...";
-    // const bridgeOwnerContract = new ethers.Contract(contractAddress, Bridge.abi, wallet)
-    constructor() {
-
-        const provider = new ethers.InfuraProvider(
-            "sepolia",
+    constructor(chain, contractAddress, privateKey) {
+        console.log("Chain is" + chain);
+        this.provider = new ethers.InfuraProvider(
+            chain,
             INFURA_API_KEY
         );
-        const wallet = new ethers.Wallet(
-            OWNER_PRIVATE_KEY,
-            provider
+        this.wallet = new ethers.Wallet(
+            privateKey,
+            this.provider
         );
-
-        const contractAddress = "0x5733BC30e18ADa36B23E000D044c94D5c2d3c989";
-        //this.providerUrl = providerUrl;
-        //this.provider = new ethers.providers.JsonRpcProvider(providerUrl);
-        this.contract = new ethers.Contract(contractAddress, BridgeAbi.abi, wallet);
+        this.contractAddress = contractAddress;
+        this.contract = new ethers.Contract(contractAddress, BridgeContract.abi, this.wallet);
     }
 
     async lockToken(token, amount, targetChainId, targetUser) {
-        //To do: check address with ethers.utils
+        try {   
+            const tokenContract = new ethers.Contract(token, ERC20Contract.abi, this.wallet);
     
+            const increaseAllowanceTx = await tokenContract.increaseAllowance(this.contractAddress, amount);
+            await increaseAllowanceTx.wait();
 
-        // Call the lock function in the bridge contract
-        try {
             const tx = await this.contract.lockToken(token, amount, targetChainId, targetUser);
             await tx.wait();
-            console.log('Transaction successful:', tx.hash);
+            
+            console.log('Transaction is successful:', tx.hash);
         } catch (error) {
             console.error('Error locking token:', error);
         }
     }
 
     async claimToken(token, sourceChainId) {
-        // Convert the token address to a checksummed version
-        tokenAddress = ethers.utils.getAddress(token);
-
         try {
-            const tx = await this.contract.claimToken(tokenAddress, sourceChainId);
+            const tx = await this.contract.claimToken(token, sourceChainId);
             await tx.wait();
-            console.log('Transaction successful:', tx.hash);
+            console.log('Transaction is successful:', tx.hash);
+            return tx;
         } catch (error) {
             console.error('Error claiming token:', error);
         }
+
     }
 
-    async burnToken(wrappedToken, amount, targetChainId, targetUser) {
-        // Convert the token address to a checksummed version
-        tokenAddress = ethers.utils.getAddress(wrappedToken);
-        targetAddress = ethers.utils.getAddress(targetUser);
-
+    async burnToken(wrappedToken, amount, targetChainId, targetAddress) {
         try {
-            const tx = await this.contract.burnToken(tokenAddress, amount, targetChainId, targetAddress);
+            const tx = await this.contract.burnToken(wrappedToken, amount, targetChainId, targetAddress);
             await tx.wait();
-            console.log('Transaction successful:', tx.hash);
+            console.log('Transaction is successful:', tx.hash);
         } catch (error) {
             console.error('Error burning token:', error);
         }
     }
 
-    async releaseToken(token) {
-        // Convert the token address to a checksummed version
-        tokenAddress = ethers.utils.getAddress(token);
-
+    async releaseToken(tokenAddress) {
         try {
             const tx = await this.contract.releaseToken(tokenAddress);
             await tx.wait();
-            console.log('Transaction successful:', tx.hash);
+            console.log('Transaction is successful:', tx.hash);
         } catch (error) {
             console.error('Error releasing token:', error);
         }
     }
 
     //Owner functions
-    async addClaimableToken(claimer, sourceChainId, token, amount) {
-        // Convert the token address to a checksummed version
-        tokenAddress = ethers.utils.getAddress(token);
-        claimerAddress = ethers.utils.getAddress(claimer);
-
+    async addClaimableToken(claimerAddress, sourceChainId, tokenAddress, amount) {
         try {
             const tx = await this.contract.addClaimableToken(claimerAddress, sourceChainId, tokenAddress, amount);
             await tx.wait();
-            console.log('Transaction successful:', tx.hash);
+            console.log('Transaction is successful:', tx.hash);
         } catch (error) {
             console.error('Error adding claimable token:', error);
         }
     }
 
-    async addReleasableToken(releaser, token, amount) {
-        // Convert the token address to a checksummed version
-        tokenAddress = ethers.utils.getAddress(token);
-        releaserAddress = ethers.utils.getAddress(releaser);
-
+    async addReleasableToken(releaserAddress, tokenAddress, amount) {
         try {
             const tx = await this.contract.addReleasableToken(releaserAddress, tokenAddress, amount);
             await tx.wait();
-            console.log('Transaction successful:', tx.hash);
+            console.log('Transaction is successful:', tx.hash);
         } catch (error) {
             console.error('Error adding releasable token:', error);
         }
@@ -115,9 +96,81 @@ class Bridge {
         try {
             const tx = await this.contract.setFeePercentage(feePercentage);
             await tx.wait();
-            console.log('Transaction successful:', tx.hash);
+            console.log('Transaction is successful:', tx.hash);
         } catch (error) {
             console.error('Error setting fee percentage:', error);
+        }
+    }
+
+    async transferWrappedTokenFactoryOwnership(wrappedTokenFactoryAddres) {
+        const wrappedTokenFactory = new ethers.Contract(wrappedTokenFactoryAddres, WrappedTokenFactory.abi, this.wallet);
+        
+        // const transferOwnershipTx = await wrappedTokenFactory.transferOwnership(this.contractAddress);
+        // transferOwnershipTx.wait();
+        // console.log('Transfer ownership successfull:', transferOwnershipTx.hash);
+        
+        const owner = await wrappedTokenFactory.owner();
+        console.log('Owner is ',owner);
+    }
+    
+    async transferWrappedTokenOwnership(wrappedTokenFactoryAddres) {
+        const wrappedTokenFactory = new ethers.Contract(wrappedTokenFactoryAddres, WrappedToken.abi, this.wallet);
+        
+        const transferOwnershipTx = await wrappedTokenFactory.transferOwnership(this.contractAddress);
+        transferOwnershipTx.wait();
+        console.log('Transfer ownership successfull:', transferOwnershipTx.hash);
+        
+        const owner = await wrappedTokenFactory.owner();
+        console.log('Owner is ',owner);
+    }
+    
+    async mintMyToken(contractAddress, recepient, amount) {
+        const myTokenContract = new ethers.Contract(contractAddress, MyToken.abi, this.wallet);
+        try {
+            const tx = await myTokenContract.mint(recepient, amount);
+            await tx.wait();
+
+            console.log('Transaction is successful:', tx.hash);
+        } catch (error) {
+            console.error('Error while minting MyToken:', error);
+        }
+    }
+
+    async getBalanceOf(tokenAddress, recepient) {
+        try {   
+            const tokenContract = new ethers.Contract(tokenAddress, ERC20Contract.abi, this.wallet);
+    
+            const balance = await tokenContract.balanceOf(recepient);
+            
+            console.log('Balance =', balance.toString());
+        } catch (error) {
+            console.error('Error while getting balance of token:', error);
+        }
+    }
+
+    async getClaimableTokensAmount(lockerAddress, sourceChainId, originTokenAddress) {
+        try {
+            const amount = await this.contract.claimableTokens(lockerAddress,sourceChainId, originTokenAddress);
+            console.log('Transaction is successful:', amount);
+        } catch (error) {
+            console.error('Error while getting claimableTokensAmount:', error);
+        }
+    }
+
+    async getOriginByWrappedByChain(lockerAddress, sourceChainId, originTokenAddress) {
+        try {
+            const amount = await this.contract.claimableTokens(lockerAddress,sourceChainId, originTokenAddress);
+            console.log('Transaction successful:', amount);
+        } catch (error) {
+            console.error('Error while getting originTokenByWrappedTokenByChain:', error);
+        }
+    }
+    async getWrappedByOriginByChain(sourceChainId, originTokenAddress) {
+        try {
+            const token = await this.contract.wrappedTokenByOriginTokenByChain(sourceChainId, originTokenAddress);
+            console.log('Transaction successful:', token);
+        } catch (error) {
+            console.error('Error while getting wrappedTokenByOriginTokenByChain:', error);
         }
     }
 }

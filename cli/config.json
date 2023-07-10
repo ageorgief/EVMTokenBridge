@@ -1,0 +1,14 @@
+{
+    "blockchains": [
+      {
+        "name": "sepolia",
+        "chainId": 11155111,
+        "contractAddress": "0xc9fb6F47537Bbe7cEE5A88cB40c349eE39822CC4"
+      },
+      {
+        "name": "goerli",
+        "chainId": 5,
+        "contractAddress": "0x8466cDED2Ca449AeCca321BbbFA9d9e93aB686cA"
+      }
+    ]
+  }

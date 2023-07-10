@@ -1,4 +1,4 @@
-//GOERLI
+//GOERLI - 5
 The MyToken contract is deployed to 0x419AC2538eF86904Cf3e9A27e7816314B16e328A
 The MyToken contract owner is 0xd25e31963cC0BD31E94F67A5e1aBC259de27A424
 The WrappedTokenFactory contract is deployed to 0x80160850E1966B2D3617e8Bd0755f6b3EF2CDb81
@@ -6,7 +6,7 @@ The WrappedTokenFactory contract owner is 0xd25e31963cC0BD31E94F67A5e1aBC259de27
 The Bridge contract is deployed to 0x06AE7C07228D3795C67EF40CE9e08C0d78e79192
 The Bridge contract owner is 0xd25e31963cC0BD31E94F67A5e1aBC259de27A424
 
-//SEPOLIA
+//SEPOLIA - 11155111
 The MyToken contract is deployed to 0xc962760Cc4a723d82249b9074fbD2b35DAbCf2A5
 The MyToken contract owner is 0xd25e31963cC0BD31E94F67A5e1aBC259de27A424
 The WrappedTokenFactory contract is deployed to 0x11BcCf7694f924Ff2190B3a98d59B1170815Afc8
@@ -16,3 +16,49 @@ The Bridge contract owner is 0xd25e31963cC0BD31E94F67A5e1aBC259de27A424
 
 //To do:
 Mapping networks name to Id in CLI //config file (the fast way), get from db (the better way)
+
+
+//////////////////////////////////V2///////////////////
+SEPOLIA 11155111
+The MyToken contract is deployed to 0x7B634d6298df06D74262518D2B4534C230C7E141
+The MyToken contract owner is 0xd25e31963cC0BD31E94F67A5e1aBC259de27A424
+The WrappedTokenFactory contract is deployed to 0x45964406B16EFC87A3b5a0FcE30Ed5448133dbD7
+The Bridge contract is deployed to 0x5D9E847788a0E688907E26eB01422bBDbA69F7eC
+The Bridge contract owner is 0xd25e31963cC0BD31E94F67A5e1aBC259de27A424
+GOERLI 5
+The MyToken contract is deployed to 0x9145b6D60F8ea84533494017B19532c931d49F79
+The MyToken contract owner is 0xd25e31963cC0BD31E94F67A5e1aBC259de27A424
+The WrappedTokenFactory contract is deployed to 0x0eBE99D057f3E16Eb1DF33Cc18253624eAA3FB79
+The Bridge contract is deployed to 0x63d98E0b9dE9bC04Dc2b64f8c77EFD3eDcBeDF57
+The Bridge contract owner is 0xd25e31963cC0BD31E94F67A5e1aBC259de27A424
+
+commands
+ node cli.js lock 0xc962760Cc4a723d82249b9074fbD2b35DAbCf2A5 2 sepolia goerli 0xd25e31963cC0BD31E94F67A5e1aBC259de27A424 33fafaaa480220d833d95a04564e9a68d3c39df10091697c9e82a7361145bead
+ node cli.js claim 0xc962760Cc4a723d82249b9074fbD2b35DAbCf2A5 sepolia goerli 33fafaaa480220d833d95a04564e9a68d3c39df10091697c9e82a7361145bead
+node cli.js transfer sepolia 0x06AE7C07228D3795C67EF40CE9e08C0d78e79192 0x80160850E1966B2D3617e8Bd0755f6b3EF2CDb81 33fafaaa480220d833d95a04564e9a68d3c39df10091697c9e82a7361145bead
+node cli.js burn 0x0c7602Be4A4b8A24502e79079Aa2856dcD11e967 2 sepolia sepolia 0xd25e31963cC0BD31E94F67A5e1aBC259de27A424 33fafaaa480220d833d95a04564e9a68d3c39df10091697c9e82a7361145bead
+node cli.js release 0xc962760Cc4a723d82249b9074fbD2b35DAbCf2A5 sepolia 33fafaaa480220d833d95a04564e9a68d3c39df10091697c9e82a7361145bead
+
+
+ node cli.js lock 0xc962760Cc4a723d82249b9074fbD2b35DAbCf2A5 2 sepolia goerli 0xd25e31963cC0BD31E94F67A5e1aBC259de27A424 c79c4f1abdc06368421de0f0f3b841d3f568cbd0ef0ebcab6b43c066c67dba12
+ node cli.js claim 0xc962760Cc4a723d82249b9074fbD2b35DAbCf2A5 sepolia goerli c79c4f1abdc06368421de0f0f3b841d3f568cbd0ef0ebcab6b43c066c67dba12
+
+  node cli.js lock 0x7955247d84743be00961337D56D154d498CE631c 50 sepolia sepolia 0xe8cF713db07d62698d6d795C848C5c6cf7d43B8e c79c4f1abdc06368421de0f0f3b841d3f568cbd0ef0ebcab6b43c066c67dba12
+ node cli.js claim 0x7955247d84743be00961337D56D154d498CE631c sepolia sepolia c79c4f1abdc06368421de0f0f3b841d3f568cbd0ef0ebcab6b43c066c67dba12
+
+///v3
+sepolia 11155111
+The MyToken contract is deployed to 0x7955247d84743be00961337D56D154d498CE631c
+The MyToken contract owner is 0xd25e31963cC0BD31E94F67A5e1aBC259de27A424
+The WrappedTokenFactory contract is deployed to 0x1Bb5517e96aC39891eD02fAe52f07261453772d2
+The WrappedTokenFactory contract owner is 0xd25e31963cC0BD31E94F67A5e1aBC259de27A424
+The Bridge contract is deployed to 0xc9fb6F47537Bbe7cEE5A88cB40c349eE39822CC4
+The Bridge contract owner is 0xd25e31963cC0BD31E94F67A5e1aBC259de27A424
+
+goerli 5
+The MyToken contract is deployed to 0xe3026e3Cd92F0B0FE985A2b0677842317597fa80
+The MyToken contract owner is 0xd25e31963cC0BD31E94F67A5e1aBC259de27A424
+The WrappedTokenFactory contract is deployed to 0x0f7612Fde99eBC1B4d018dab5BAc4AaeaD5C712f
+The WrappedTokenFactory contract owner is 0xd25e31963cC0BD31E94F67A5e1aBC259de27A424
+The Bridge contract is deployed to 0x8466cDED2Ca449AeCca321BbbFA9d9e93aB686cA
+The Bridge contract owner is 0xd25e31963cC0BD31E94F67A5e1aBC259de27A424

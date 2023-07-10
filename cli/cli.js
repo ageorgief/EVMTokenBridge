@@ -97,7 +97,7 @@ program
 
 program
   .command('setFeePercentage <network> <feePercentage> <privateKey>')
-  .description('Releases token that has been locked on a source chain')
+  .description('Sets the fee percentage of the bridge')
   .action(async (network, feePercentage, privateKey) => {
     const blockchain = blockchains[network];
     const contractAddress = blockchain.contractAddress;
@@ -165,7 +165,7 @@ program
   });
 
 program
-  .command('getWrappedByOrigin <network> <sourceChain> <originTokenAddress> <privateKey>')
+  .command('getWrappedTokenByOriginToken <network> <sourceChain> <originTokenAddress> <privateKey>')
   .description('Mints token to recepient')
   .action(async (network, sourceChain, originTokenAddress, privateKey) => {
     const blockchain = blockchains[network];

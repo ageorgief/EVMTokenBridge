@@ -3,7 +3,7 @@
       {
         "name": "sepolia",
         "chainId": 11155111,
-        "contractAddress": "0xc9fb6F47537Bbe7cEE5A88cB40c349eE39822CC4"
+        "contractAddress": "0xb56c50052706Fc546B3De8E689Fd796444343469"
       },
       {
         "name": "goerli",

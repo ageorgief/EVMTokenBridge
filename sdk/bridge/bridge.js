@@ -10,7 +10,6 @@ const INFURA_API_KEY = '9f30ad62c0434218964bb38f1d2def95';
 
 class Bridge {
     constructor(chain, contractAddress, privateKey) {
-        console.log("Chain is" + chain);
         this.provider = new ethers.InfuraProvider(
             chain,
             INFURA_API_KEY
@@ -105,17 +104,6 @@ class Bridge {
     async transferWrappedTokenFactoryOwnership(wrappedTokenFactoryAddres) {
         const wrappedTokenFactory = new ethers.Contract(wrappedTokenFactoryAddres, WrappedTokenFactory.abi, this.wallet);
         
-        // const transferOwnershipTx = await wrappedTokenFactory.transferOwnership(this.contractAddress);
-        // transferOwnershipTx.wait();
-        // console.log('Transfer ownership successfull:', transferOwnershipTx.hash);
-        
-        const owner = await wrappedTokenFactory.owner();
-        console.log('Owner is ',owner);
-    }
-    
-    async transferWrappedTokenOwnership(wrappedTokenFactoryAddres) {
-        const wrappedTokenFactory = new ethers.Contract(wrappedTokenFactoryAddres, WrappedToken.abi, this.wallet);
-        
         const transferOwnershipTx = await wrappedTokenFactory.transferOwnership(this.contractAddress);
         transferOwnershipTx.wait();
         console.log('Transfer ownership successfull:', transferOwnershipTx.hash);
@@ -168,7 +156,7 @@ class Bridge {
     async getWrappedByOriginByChain(sourceChainId, originTokenAddress) {
         try {
             const token = await this.contract.wrappedTokenByOriginTokenByChain(sourceChainId, originTokenAddress);
-            console.log('Transaction successful:', token);
+            console.log('Wrapped token address:', token);
         } catch (error) {
             console.error('Error while getting wrappedTokenByOriginTokenByChain:', error);
         }

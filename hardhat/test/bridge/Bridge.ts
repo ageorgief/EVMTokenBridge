@@ -28,6 +28,7 @@ describe("Bridge", function () {
     let myTokenAddress: Typed | AddressLike;
     const sourceChainId = 1;
     const targetChainId = 2;
+
     const ONE_DAY_IN_SECS = 24 * 60 * 60;
 
 

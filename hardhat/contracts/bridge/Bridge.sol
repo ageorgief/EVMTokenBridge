@@ -118,6 +118,8 @@ contract Bridge is Ownable {
             address wrappedTokenAddress = _createWrappedToken(token);
             _mapTokens(sourceChainId, token, wrappedTokenAddress);
         }
+        
+
         address wrappedToken = wrappedTokenByOriginTokenByChain[sourceChainId][token];
 
         WrappedToken(wrappedToken).mint(msg.sender, amount);
@@ -189,9 +191,7 @@ contract Bridge is Ownable {
         IERC20(token).transfer(recipient, amount);
     }
 
-    function _createWrappedToken(
-        address originalTokenAddress
-    ) internal returns (address) {
+    function _createWrappedToken(address originalTokenAddress) internal returns (address) {
         ERC20 originalToken = ERC20(originalTokenAddress);
         string memory tokenName = originalToken.name();
         string memory tokenSymbol = originalToken.symbol();
@@ -206,20 +206,11 @@ contract Bridge is Ownable {
         address originalToken,
         address wrappedToken
     ) internal {
-        wrappedTokenByOriginTokenByChain[sourceChainId][
-            originalToken
-        ] = wrappedToken;
-        originTokenByWrappedTokenByChain[sourceChainId][
-            wrappedToken
-        ] = originalToken;
+        wrappedTokenByOriginTokenByChain[sourceChainId][originalToken] = wrappedToken;
+        originTokenByWrappedTokenByChain[sourceChainId][wrappedToken] = originalToken;
     }
 
-    function _tokenKnown(
-        uint256 sourceChainId,
-        address originalTokenAddress
-    ) internal view returns (bool) {
-        return (wrappedTokenByOriginTokenByChain[sourceChainId][
-            originalTokenAddress
-        ] != NULL_ADDRESS);
+    function _tokenKnown(uint256 sourceChainId, address originalTokenAddress) internal view returns (bool) {
+        return (wrappedTokenByOriginTokenByChain[sourceChainId][originalTokenAddress] != NULL_ADDRESS);
     }
 }

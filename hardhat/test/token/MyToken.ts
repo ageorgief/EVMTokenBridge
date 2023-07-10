@@ -1,6 +1,13 @@
 import { MyToken } from "./../../typechain-types/contracts/token/MyToken";
 import { expect } from "chai";
 import { ethers } from "hardhat";
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+const INFURA_API_KEY = process.env.INFURA_API_KEY as string;
+const OWNER_PRIVATE_KEY = process.env.SEPOLIA_PRIVATE_KEY as string;
+const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY as string;
 
 describe("MyToken", function () {
     let myTokenFactory;
@@ -25,6 +32,7 @@ describe("MyToken", function () {
         const [owner, user] = await ethers.getSigners();
         const amount = 10;
 
+        
         await expect(myToken.connect(user).mint(user.address, amount)).to.revertedWith('Ownable: caller is not the owner');
     });
 });

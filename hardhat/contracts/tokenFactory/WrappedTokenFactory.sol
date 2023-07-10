@@ -7,7 +7,7 @@ import "../token/WrappedToken.sol";
 
 contract WrappedTokenFactory is IWrappedTokenFactory, Ownable {
     function createWrappedToken(string calldata _name, string calldata _symbol)
-    public onlyOwner  override returns(address) {
+    public onlyOwner override returns(address) {
         string memory name = string(abi.encodePacked("Wrapped", _name));
         string memory symbol = string(abi.encodePacked("W", _symbol));
         

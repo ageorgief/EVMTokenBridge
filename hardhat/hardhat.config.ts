@@ -1,12 +1,12 @@
 import { HardhatUserConfig, task, subtask } from 'hardhat/config';
 import '@nomicfoundation/hardhat-toolbox';
 import dotenv from 'dotenv';
+import { network } from 'hardhat';
 
 dotenv.config();
 
 const INFURA_API_KEY = process.env.INFURA_API_KEY as string;
-const SEPOLIA_PRIVATE_KEY = process.env.SEPOLIA_PRIVATE_KEY as string;
-const GOERLI_PRIVATE_KEY = process.env.GOERLI_PRIVATE_KEY as string;
+const OWNER_PRIVATE_KEY = process.env.OWNER_PRIVATE_KEY as string;
 const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY as string;
 
 const config: HardhatUserConfig = {
@@ -14,11 +14,11 @@ const config: HardhatUserConfig = {
   networks: {
     sepolia: {
       url: `https://sepolia.infura.io/v3/${INFURA_API_KEY}`,
-      accounts: [SEPOLIA_PRIVATE_KEY]
+      accounts: [OWNER_PRIVATE_KEY]
     },
     goerli: {
       url: `https://goerli.infura.io/v3/${INFURA_API_KEY}`,
-      accounts: [SEPOLIA_PRIVATE_KEY]
+      accounts: [OWNER_PRIVATE_KEY]
     }
   },
   etherscan: {

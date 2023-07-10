@@ -6,6 +6,10 @@ const tokenClaimedEventScheme = new mongoose.Schema({
         required: true,
         type: String
     },
+    originTokenAddress: {
+        required: true,
+        type: String
+    },
     wrappedTokenAddress: {
         required: true,
         type: String

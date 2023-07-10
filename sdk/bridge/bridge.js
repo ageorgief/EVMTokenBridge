@@ -38,7 +38,6 @@ class Bridge {
 
     async claimToken(token, sourceChainId) {
         try {
-            console.log('IN BRIDGE SDK')
             const tx = await this.contract.claimToken(sourceChainId, token);
             await tx.wait();
             console.log('Transaction is successful:', tx.hash);
@@ -104,7 +103,7 @@ class Bridge {
         const wrappedTokenFactory = new ethers.Contract(wrappedTokenFactoryAddres, WrappedTokenFactory.abi, this.wallet);
         
         const transferOwnershipTx = await wrappedTokenFactory.transferOwnership(this.contractAddress);
-        transferOwnershipTx.wait();
+        await transferOwnershipTx.wait();
         console.log('Transfer ownership successfull:', transferOwnershipTx.hash);
         
         const owner = await wrappedTokenFactory.owner();

@@ -39,6 +39,30 @@ app.get('/api/bridgedTokens/:chainId?', async (req, res) => {
   }
 });
 
+app.get('/api/waitingToBeClaimedTokens/:chainId?', async (req, res) => {
+  const chainId = req.params.chainId;
+
+  const result = await new ApiController().getWaitingToBeClaimedTokens(chainId);
+
+  if (result.isError) {
+    res.status(400).send(result.data);
+  } else {
+    res.json(result.data);
+  }
+});
+
+app.get('/api/waitingToBeReleasedTokens/:chainId?', async (req, res) => {
+  const chainId = req.params.chainId;
+
+  const result = await new ApiController().getWaitingToBeReleasedTokens(chainId);
+
+  if (result.isError) {
+    res.status(400).send(result.data);
+  } else {
+    res.json(result.data);
+  }
+});
+
 app.listen(port, () => {
   console.log(`App listening on port ${port}`);
 });

@@ -28,7 +28,7 @@ class EventListenerService {
 
         for (const chainId in this.blockchainsMapping) {
             const chain = this.blockchainsMapping[chainId];
-            
+
             this.startListeningForTokenLockedEvents(chain, chainId);
             this.startListeningForTokenClaimedEvents(chain, chainId);
             this.startListeningForTokenBurnedEvents(chain, chainId);
@@ -50,7 +50,7 @@ class EventListenerService {
                 console.log('Unknown blockchain: ', targetChainId);
                 return;
             }
-            
+
             const contract = targetBlockchain.bridgeContract;
             await this.tokenLockedEventProcessor.process(
                 lockerAddress,
@@ -72,9 +72,10 @@ class EventListenerService {
     }
 
     startListeningForTokenClaimedEvents(chain, chainId) {
-        chain.bridgeContract.on(TOKEN_CLAIMED, async (claimerAddress, wrappedTokenAddress, amount, rawEvent) => {
+        chain.bridgeContract.on(TOKEN_CLAIMED, async (claimerAddress, originTokenAddress, wrappedTokenAddress, amount, rawEvent) => {
             await this.tokenClaimedEventProcessor.process(
                 claimerAddress,
+                originTokenAddress,
                 wrappedTokenAddress,
                 amount,
                 chainId,
@@ -150,7 +151,6 @@ class EventListenerService {
                 event.args[3],
                 event.args[4],
                 chainId,
-                chain.bridgeContract,
                 contract,
                 chain.erc20Abi,
                 chain.provider,
@@ -168,8 +168,9 @@ class EventListenerService {
     }
 
     async queryTokenClaimedEvents(chain, chainId) {
+        console.log('In query and last procesblock',chain.lastProcessedBlock);
         const events = await chain.bridgeContract.queryFilter(TOKEN_CLAIMED, chain.lastProcessedBlock + 1);
-
+        console.log('evv', events.length);
         let maxProcessedBlock = chain.lastProcessedBlock;
 
         for (const event of events) {
@@ -177,6 +178,7 @@ class EventListenerService {
                 event.args[0],
                 event.args[1],
                 event.args[2],
+                event.args[3],
                 chainId,
                 event.transactionHash);
 
@@ -203,7 +205,7 @@ class EventListenerService {
                 console.log('Unknown blockchain: ', event.args[3]);
                 continue;
             }
-            
+
             const contract = targetBlockchain.bridgeContract;
             await this.tokenBurnedEventProcessor.process(
                 event.args[0],
@@ -262,6 +264,8 @@ class EventListenerService {
             const ownerWallet = new ethers.Wallet(contractOwnerPrivateKey, provider);
             const bridgeContract = new ethers.Contract(blockchain.bridgeContractAddress, contractAbi, ownerWallet);
             const lastProcessedBlock = settingsMap['lastProcessedBlock_' + blockchain.chainId] || 0;
+
+            console.log('csacascasc:',blockchain.bridgeContractAddress);
 
             this.blockchainsMapping[blockchain.chainId.toString()] = { provider: provider, bridgeContract: bridgeContract, lastProcessedBlock: lastProcessedBlock, erc20Abi: erc20Abi };
         });

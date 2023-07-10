@@ -44,12 +44,7 @@ program
     const blockchain = blockchains[targetChain];
     const contractAddress = blockchain.contractAddress;
     const targetChainId = blockchain.chainId;
-    const sourceChainId = blockchains[sourceChain].chainId
-
-    console.log('contractAddress:', contractAddress);
-    console.log('targetChainId:', targetChainId);
-    console.log('sourceChainId:', sourceChainId);
-
+    const sourceChainId = blockchains[sourceChain].chainId;
 
     const bridgeSDK = new BridgeSDK(targetChainId, contractAddress, privateKey);
 

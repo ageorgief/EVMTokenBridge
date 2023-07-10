@@ -146,6 +146,23 @@ program
     }
   });
 
+  program
+  .command('getTokenName <network> <tokenAddress> <privateKey>')
+  .description('Returns balance of token for a recepient')
+  .action(async (network, tokenAddress, privateKey) => {
+    const blockchain = blockchains[network];
+    const contractAddress = blockchain.contractAddress;
+    const chainId = blockchain.chainId;
+
+    const bridgeSDK = new BridgeSDK(chainId, contractAddress, privateKey);
+
+    try {
+      await bridgeSDK.getTokenName(tokenAddress,chainId);
+    } catch (error) {
+      console.error('Error while minting tokens:', error.message);
+    }
+  });
+
 program
   .command('getClaimableTokens <network> <lockerAddress> <sourceChain> <originTokenAddress> <privateKey>')
   .description('Returns amount of claimable tokens for a chosen blockchain by user -> source chain-> address of origin token')

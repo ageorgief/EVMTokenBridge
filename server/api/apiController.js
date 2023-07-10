@@ -1,5 +1,6 @@
 const Setting = require('../models/setting');
 const TokenClaimedEvent = require('../models/tokenClaimedEvent');
+const TokenLockedEvent = require('../models/tokenLockedEvent');
 const ApiResult = require('./apiResult');
 
 class ApiController {

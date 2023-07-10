@@ -1,7 +1,6 @@
 import { HardhatUserConfig, task, subtask } from 'hardhat/config';
 import '@nomicfoundation/hardhat-toolbox';
 import dotenv from 'dotenv';
-import { network } from 'hardhat';
 
 dotenv.config();
 

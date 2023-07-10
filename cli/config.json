@@ -3,12 +3,12 @@
       {
         "name": "sepolia",
         "chainId": 11155111,
-        "contractAddress": "0xb56c50052706Fc546B3De8E689Fd796444343469"
+        "contractAddress": "0xB093F3EDF613946F5fde94E889409A5c685308DE"
       },
       {
         "name": "goerli",
         "chainId": 5,
-        "contractAddress": "0x8466cDED2Ca449AeCca321BbbFA9d9e93aB686cA"
+        "contractAddress": "0x1C691631618b69E7b32E811A4507A4B5120A2B79"
       }
     ]
   }

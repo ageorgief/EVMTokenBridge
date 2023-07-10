@@ -1,20 +1,35 @@
 const TokenLockedEvent = require("../models/tokenLockedEvent");
-const mongoose = require('mongoose')
-
+const mongoose = require('mongoose');
+const { ethers } = require("ethers");
 
 class TokenLockedEventProcessor {
-    async process(lockerAddress, originTokenAddress, amount, targetChainId, claimerAddress, sourceChainId, targetBridgeContract, transactionHash) {
+    async process(lockerAddress, originTokenAddress, amount, targetChainId, claimerAddress, sourceChainId, targetBridgeContract, erc20Abi, ownerWallet, transactionHash) {
         console.log('Started proccessing TokenLocked event for transaction:', transactionHash, ' on chain:', sourceChainId);
         
         const existingEvent = await TokenLockedEvent.findOne({ transactionHash });
         if (existingEvent) {
             return;
         }
-
+        
         try {
+            const erc20Contract = new ethers.Contract(originTokenAddress, erc20Abi, ownerWallet);
+            
+            const tokenName = await erc20Contract.name();
+            const tokenSymbol = await erc20Contract.symbol();
+
+            const addTokenNameTransaction = await targetBridgeContract.addTokenName(sourceChainId, originTokenAddress, tokenName);
+            await addTokenNameTransaction.wait();
+            console.log('addTokenNameTransaction transaction successful:', addTokenNameTransaction.hash);
+
+            const addTokemSymbolTransaction = await targetBridgeContract.addTokenSymbol(sourceChainId, originTokenAddress, tokenSymbol);
+            await addTokemSymbolTransaction.wait();
+            console.log('addTokenNameTransaction transaction successful:', addTokemSymbolTransaction.hash);
+
             const addClaimableTransaction = await targetBridgeContract.addClaimableToken(claimerAddress, sourceChainId, originTokenAddress, amount);
             await addClaimableTransaction.wait();
             console.log('AddClaimableToken transaction successful:', addClaimableTransaction.hash);
+
+
         } catch (error) {
             console.error('Error adding claimable token:', error);
             return;

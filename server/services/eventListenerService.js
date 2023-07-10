@@ -50,7 +50,7 @@ class EventListenerService {
                 console.log('Unknown blockchain: ', targetChainId);
                 return;
             }
-
+            
             const contract = targetBlockchain.bridgeContract;
             await this.tokenLockedEventProcessor.process(
                 lockerAddress,
@@ -60,6 +60,8 @@ class EventListenerService {
                 targetAddress,
                 chainId,
                 contract,
+                chain.erc20Abi,
+                chain.provider,
                 rawEvent.log.transactionHash);
 
             if (rawEvent.log.blockNumber > chain.lastProcessedBlock + 1) {
@@ -148,7 +150,10 @@ class EventListenerService {
                 event.args[3],
                 event.args[4],
                 chainId,
+                chain.bridgeContract,
                 contract,
+                chain.erc20Abi,
+                chain.provider,
                 event.transactionHash);
 
             if (maxProcessedBlock < event.blockNumber) {
@@ -248,6 +253,7 @@ class EventListenerService {
     initialize(settingsMap) {
         const contractOwnerPrivateKey = settingsMap['contractOwnerPrivateKey'];
         const contractAbi = settingsMap['contractAbi'];
+        const erc20Abi = settingsMap['erc20Abi'];
         const infuraApiKey = settingsMap['infuraApiKey'];
         const blockchains = settingsMap['blockchains'];
 
@@ -257,7 +263,7 @@ class EventListenerService {
             const bridgeContract = new ethers.Contract(blockchain.bridgeContractAddress, contractAbi, ownerWallet);
             const lastProcessedBlock = settingsMap['lastProcessedBlock_' + blockchain.chainId] || 0;
 
-            this.blockchainsMapping[blockchain.chainId.toString()] = { provider: provider, bridgeContract: bridgeContract, lastProcessedBlock: lastProcessedBlock };
+            this.blockchainsMapping[blockchain.chainId.toString()] = { provider: provider, bridgeContract: bridgeContract, lastProcessedBlock: lastProcessedBlock, erc20Abi: erc20Abi };
         });
     }
 }

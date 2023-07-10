@@ -2,9 +2,7 @@ const { ethers } = require("ethers");
 const BridgeContract = require('../abi/bridge/Bridge.json');
 const ERC20Contract = require('../abi/token/ERC20.json');
 const WrappedTokenFactory = require('../abi/tokenfactory/WrappedTokenFactory.json');
-const WrappedToken = require('../abi/token/WrappedToken.json');
 const MyToken = require('../abi/token/MyToken.json');
-
 
 const INFURA_API_KEY = '9f30ad62c0434218964bb38f1d2def95';
 
@@ -40,7 +38,8 @@ class Bridge {
 
     async claimToken(token, sourceChainId) {
         try {
-            const tx = await this.contract.claimToken(token, sourceChainId);
+            console.log('IN BRIDGE SDK')
+            const tx = await this.contract.claimToken(sourceChainId, token);
             await tx.wait();
             console.log('Transaction is successful:', tx.hash);
             return tx;
@@ -133,6 +132,18 @@ class Bridge {
             console.log('Balance =', balance.toString());
         } catch (error) {
             console.error('Error while getting balance of token:', error);
+        }
+    }
+
+    async getTokenName(tokenAddress,sourceChainId) {
+        try {   
+            const tokenContract = new ethers.Contract(tokenAddress, ERC20Contract.abi, this.wallet);
+    
+            const name = await tokenContract.tokenNameByOriginTokenByChain(sourceChainId,tokenAddress);
+            
+            console.log('name =', name);
+        } catch (error) {
+            console.error('Error while getting token name:', error);
         }
     }
 

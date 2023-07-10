@@ -5,7 +5,7 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 import { time } from "@nomicfoundation/hardhat-toolbox/network-helpers"
 import { Typed, BigNumberish, AddressLike } from "ethers";
-import { IERC20__factory } from "../../typechain-types";
+import { IERC20__factory, ERC20__factory } from "../../typechain-types";
 
 describe("Bridge", function () {
     this.timeout(0);
@@ -90,9 +90,14 @@ describe("Bridge", function () {
     it("Should have claimed wrappedToken on target chain for lockedMyToken on sourceChain and emit event for claimed token", async function () {
         const [owner, user] = await ethers.getSigners();
 
+        const tokenName = await ERC20__factory.connect(myTokenAddress.toString(), owner).name();
+        const tokenSymbol = await ERC20__factory.connect(myTokenAddress.toString(), owner).symbol();
+
+        await (await targetBridge.addTokenName(sourceChainId, myTokenAddress, tokenName)).wait();
+        await (await targetBridge.addTokenSymbol(sourceChainId, myTokenAddress, tokenSymbol)).wait();
         await (await targetBridge.addClaimableToken(user.address, sourceChainId, myTokenAddress, amountToBeClaimed)).wait();
 
-        await expect(await targetBridge.connect(user).claimToken(myTokenAddress, sourceChainId))
+        await expect(await targetBridge.connect(user).claimToken(sourceChainId, myTokenAddress))
             .to
             .emit(targetBridge, "TokenClaimed");
 
@@ -149,14 +154,19 @@ describe("Bridge", function () {
         const [owner, user, user2] = await ethers.getSigners();
         const nullAddress = ethers.ZeroAddress;
         const amount = 50;
+        
         const wrappedTokenAddress = await targetBridge.wrappedTokenByOriginTokenByChain(sourceChainId, myTokenAddress);
+        const tokenName = await ERC20__factory.connect(myTokenAddress.toString(), owner).name();
+        const tokenSymbol = await ERC20__factory.connect(myTokenAddress.toString(), owner).symbol();
 
-    
+        await (await targetBridge.addTokenName(sourceChainId, myTokenAddress, tokenName)).wait();
+        await (await targetBridge.addTokenSymbol(sourceChainId, myTokenAddress, tokenSymbol)).wait();
+
         await (await targetBridge.addClaimableToken(user2.address, sourceChainId, myTokenAddress, amount)).wait();
 
-        await expect(await targetBridge.connect(user2).claimToken(myTokenAddress, sourceChainId))
+        await expect(await targetBridge.connect(user2).claimToken(sourceChainId, myTokenAddress))
             .to
-            .emit(targetBridge, "TokenClaimed");    
+            .emit(targetBridge, "TokenClaimed");
 
         expect(await IERC20__factory.connect(wrappedTokenAddress, user2).balanceOf(user2.address)).to.equal(amount);
     });
@@ -181,13 +191,13 @@ describe("Bridge", function () {
     });
 
     it("Should revert when user that has not locked token on source bridge calls claimToken", async function () {
-        const [owner, user,user2] = await ethers.getSigners();
+        const [owner, user, user2] = await ethers.getSigners();
 
-        await expect(targetBridge.connect(user2).claimToken(myTokenAddress, sourceChainId)).to.revertedWith('Bridge: no claimable token');
+        await expect(targetBridge.connect(user2).claimToken(sourceChainId, myTokenAddress)).to.revertedWith('Bridge: no claimable token');
     });
 
     it("Should revert when user that has not burned token on target bridge calls releaseToken", async function () {
-        const [owner, user,user2] = await ethers.getSigners();
+        const [owner, user, user2] = await ethers.getSigners();
 
         await expect(sourceBridge.connect(user2).releaseToken(myTokenAddress)).to.revertedWith('Bridge: no releasable token');
     });
@@ -230,14 +240,14 @@ describe("Bridge", function () {
         const [owner, user] = await ethers.getSigners();
         const nullAddress = ethers.ZeroAddress;
 
-        await expect(targetBridge.connect(user).claimToken(nullAddress, sourceChainId)).to.revertedWith('Bridge: Token address cannot be the null address');
+        await expect(targetBridge.connect(user).claimToken(sourceChainId, nullAddress)).to.revertedWith('Bridge: Token address cannot be the null address');
     });
 
 
     it("Should revert when user calls lockToken with not positive chainId for sourceChainId in parameters", async function () {
         const [owner, user] = await ethers.getSigners();
         const chainId = 0;
-        await expect(targetBridge.connect(user).claimToken(myTokenAddress, chainId)).to.revertedWith('Bridge: chainId has to be greater than 0');
+        await expect(targetBridge.connect(user).claimToken(chainId, myTokenAddress)).to.revertedWith('Bridge: chainId has to be greater than 0');
     });
 
     //Tests for burnToken modifiers
@@ -283,18 +293,35 @@ describe("Bridge", function () {
     it("Should revert with not owner when user,different from the owner calls addClaimableToken", async function () {
         const [owner, user] = await ethers.getSigners();
         const amount = 42;
+
         await expect(sourceBridge.connect(user).addClaimableToken(user.address, sourceChainId, myTokenAddress, amount)).to.revertedWith('Ownable: caller is not the owner');
     });
 
     it("Should revert with not owner when user,different from the owner calls addReleasableToken", async function () {
         const [owner, user] = await ethers.getSigners();
         const amount = 42;
+
         await expect(sourceBridge.connect(user).addReleasableToken(user.address, myTokenAddress, amount)).to.revertedWith('Ownable: caller is not the owner');
+    });
+
+    it("Should revert with not owner when user,different from the owner calls addTokenSymbol", async function () {
+        const [owner, user] = await ethers.getSigners();
+        const tokenName = "name";
+        
+        await expect(sourceBridge.connect(user).addTokenName(user.address, myTokenAddress,tokenName)).to.revertedWith('Ownable: caller is not the owner');
+    });
+
+    it("Should revert with not owner when user,different from the owner calls addTokenSymbol", async function () {
+        const [owner, user] = await ethers.getSigners();
+        const tokenSymbol = "symbol";
+
+        await expect(sourceBridge.connect(user).addTokenSymbol(user.address, myTokenAddress, tokenSymbol)).to.revertedWith('Ownable: caller is not the owner');
     });
 
     it("Should revert with not owner when user,different from the owner calls withdrawTokenFee", async function () {
         const [owner, user] = await ethers.getSigners();
         const amount = 42;
+
         await expect(sourceBridge.connect(user).withdrawTokenFee(myTokenAddress, amount, user.address)).to.revertedWith('Ownable: caller is not the owner');
     });
 });

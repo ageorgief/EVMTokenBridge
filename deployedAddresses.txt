@@ -79,11 +79,11 @@ node cli.js release 0xdF1f4F8B19acf752Ac8c6F14598e917A32A96a4F sepolia 33fafaaa4
 
 MyToken2 0xF48294858D1c068855Cc9F79b15277A849580663
 Deployment log
-The MyToken contract is deployed to 0x688d863A7C8A29cFF6aF5639a34bbD6369AF3904
+The MyToken contract is deployed to 0x8507E1177B59F7659266601D3a4965e7A765C2e0
 The MyToken contract owner is 0xd25e31963cC0BD31E94F67A5e1aBC259de27A424
-The WrappedTokenFactory contract is deployed to 0x6a0ca0D1f63ab208f66Af3f77ac55d67CF44F4F6
+The WrappedTokenFactory contract is deployed to 0xf4007e9E818aF00A4f46607531Edab5F61B8E092
 The WrappedTokenFactory contract owner is 0xd25e31963cC0BD31E94F67A5e1aBC259de27A424
-The Bridge contract is deployed to 0xb56c50052706Fc546B3De8E689Fd796444343469
+The Bridge contract is deployed to 0xFA2d22E7035b43E463C5d04a8A2405eC0940f07A
 The Bridge contract owner is 0xd25e31963cC0BD31E94F67A5e1aBC259de27A424
 
 commands
@@ -96,6 +96,22 @@ node cli.js burn wrappedToken 19 sepolia sepolia 0xe8cF713db07d62698d6d795C848C5
 node cli.js release 0x688d863A7C8A29cFF6aF5639a34bbD6369AF3904 sepolia c79c4f1abdc06368421de0f0f3b841d3f568cbd0ef0ebcab6b43c066c67dba12
 
 
+
+GOERLI 5
+The MyToken contract is deployed to 0xA596847482b66301859774AA6Dd84cA621d1c492
+The MyToken contract owner is 0xe8cF713db07d62698d6d795C848C5c6cf7d43B8e
+The WrappedTokenFactory contract is deployed to 0x27D046a78a6B2ab4B9606fE5946483fFf765AbEe
+The WrappedTokenFactory contract owner is 0xe8cF713db07d62698d6d795C848C5c6cf7d43B8e
+The Bridge contract is deployed to 0x1C691631618b69E7b32E811A4507A4B5120A2B79
+The Bridge contract owner is 0xe8cF713db07d62698d6d795C848C5c6cf7d43B8e
+
+SEPOLIA 11155111
+The MyToken contract is deployed to 0xad5082ee89Bc6F8f9Bd8E98375bd5Ba1d99D3500
+The MyToken contract owner is 0xe8cF713db07d62698d6d795C848C5c6cf7d43B8e
+The WrappedTokenFactory contract is deployed to 0x1D5295D01CBc5914E6473d5a30745E4F39ec9500
+The WrappedTokenFactory contract owner is 0xe8cF713db07d62698d6d795C848C5c6cf7d43B8e
+The Bridge contract is deployed to 0xB093F3EDF613946F5fde94E889409A5c685308DE
+The Bridge contract owner is 0xe8cF713db07d62698d6d795C848C5c6cf7d43B8e
 
 
 

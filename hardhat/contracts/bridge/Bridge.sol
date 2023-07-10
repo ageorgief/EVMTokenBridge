@@ -1,6 +1,5 @@
 //SPDX-License-Identifier: MIT
-pragma solidity ^0.8.9;
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+pragma solidity 0.8.9;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../token/WrappedToken.sol";
@@ -11,45 +10,54 @@ contract Bridge is Ownable {
     uint8 internal feePercentage;
     IWrappedTokenFactory public wrappedTokenFactory;
 
-    mapping(address => uint256) public feeBalances; //collected fee tokenAddress -> amount
-    mapping(uint256 => mapping(address => address))
-        public wrappedTokenByOriginTokenByChain; // chainId => SideToken Address => OriginToken Address
-    mapping(uint256 => mapping(address => address))
-        public originTokenByWrappedTokenByChain; // chainId => OriginToken Address => SideToken Address
-    mapping(address => mapping(uint256 => mapping(address => uint256)))
-        public claimableTokens; //tokens that can be claimed user -> chainId -> address of original token -> amount
-    mapping(address => mapping(address => uint256)) public releasableTokens; //tokens that can been released by user -> address of origin token -> amount
+    mapping(uint => mapping(address => string)) public tokenNameByOriginTokenByChain;
+    mapping(uint => mapping(address => string)) public tokenSymbolByOriginTokenByChain;
+
+    //collected fee tokenAddress -> amount
+    mapping(address => uint) public feeBalances; 
+
+    // chainId => SideToken Address => OriginToken Address
+    mapping(uint => mapping(address => address))public wrappedTokenByOriginTokenByChain; 
+
+    // chainId => OriginToken Address => SideToken Address
+    mapping(uint => mapping(address => address))public originTokenByWrappedTokenByChain; 
+    
+    //tokens that can be claimed user -> chainId -> address of origin token -> amount
+    mapping(address => mapping(uint => mapping(address => uint))) public claimableTokens; 
+
+    //tokens that can been released by user -> address of origin token -> amount
+    mapping(address => mapping(address => uint)) public releasableTokens; 
 
     event TokenLocked(
         address lockerAddress,
         address originTokenAddress,
-        uint256 amount,
-        uint256 targetChainId,
+        uint amount,
+        uint targetChainId,
         address claimerAddress
     );
     event TokenClaimed(
         address claimerAddress,
         address wrappedTokenAddress,
-        uint256 amount
+        uint amount
     );
     event TokenBurned(
         address burnerAddress,
         address originTokenAddress,
-        uint256 amount,
-        uint256 targetChainId,
+        uint amount,
+        uint targetChainId,
         address releaserAddress
     );
     event TokenReleased(
         address releaserAddress,
         address originTokenAddress,
-        uint256 amount
+        uint amount
     );
 
-    modifier positiveAmount(uint256 amount) {
+    modifier positiveAmount(uint amount) {
         require(amount > 0, "Bridge: Amount must be greater than 0");
         _;
     }
-    modifier positiveChainId(uint256 chainId) {
+    modifier positiveChainId(uint chainId) {
         require(chainId > 0, "Bridge: chainId has to be greater than 0");
         _;
     }
@@ -72,14 +80,10 @@ contract Bridge is Ownable {
         wrappedTokenFactory = IWrappedTokenFactory(_wrappedTokenFactory);
     }
 
-    function setFeePercentage(uint8 _feePercentage) external onlyOwner {
-        feePercentage = _feePercentage;
-    }
-
     function lockToken(
         address token,
-        uint256 amount,
-        uint256 targetChainId,
+        uint amount,
+        uint targetChainId,
         address targetAddress
     )
         external
@@ -89,10 +93,10 @@ contract Bridge is Ownable {
         notNullTargetAddress(targetAddress)
     {
         // Calculate the fee amount
-        uint256 feeAmount = (amount * feePercentage) / 100;
+        uint feeAmount = (amount * feePercentage) / 100;
 
         // Calculate the net amount to be bridged (deducting the fee)
-        uint256 netAmount = amount - feeAmount;
+        uint netAmount = amount - feeAmount;
 
         // Transfer the token amount from the user to the bridge
         IERC20(token).transferFrom(msg.sender, address(this), amount);
@@ -107,20 +111,24 @@ contract Bridge is Ownable {
     }
 
     function claimToken(
-        address token,
-        uint256 sourceChainId
+        uint sourceChainId,
+        address token
     ) external notNullTokenAddress(token) positiveChainId(sourceChainId) {
-        uint256 amount = claimableTokens[msg.sender][sourceChainId][token];
+        uint amount = claimableTokens[msg.sender][sourceChainId][token];
 
         require(amount > 0, "Bridge: no claimable token");
 
         if (!_tokenKnown(sourceChainId, token)) {
-            address wrappedTokenAddress = _createWrappedToken(token);
+            address wrappedTokenAddress = _createWrappedToken(
+                sourceChainId,
+                token
+            );
             _mapTokens(sourceChainId, token, wrappedTokenAddress);
         }
-        
 
-        address wrappedToken = wrappedTokenByOriginTokenByChain[sourceChainId][token];
+        address wrappedToken = wrappedTokenByOriginTokenByChain[sourceChainId][
+            token
+        ];
 
         WrappedToken(wrappedToken).mint(msg.sender, amount);
 
@@ -131,8 +139,8 @@ contract Bridge is Ownable {
 
     function burnToken(
         address wrappedToken,
-        uint256 amount,
-        uint256 targetChainId,
+        uint amount,
+        uint targetChainId,
         address targetAddress
     )
         external
@@ -152,65 +160,70 @@ contract Bridge is Ownable {
         );
     }
 
-    function releaseToken(
-        address originalToken
-    ) external notNullTokenAddress(originalToken) {
-        uint256 amount = releasableTokens[msg.sender][originalToken];
-    
+    function releaseToken(address originToken) external notNullTokenAddress(originToken) {
+        uint amount = releasableTokens[msg.sender][originToken];
+
         require(amount > 0, "Bridge: no releasable token");
 
-        IERC20(originalToken).transfer(msg.sender, amount);
+        IERC20(originToken).transfer(msg.sender, amount);
 
-        releasableTokens[msg.sender][originalToken] = 0;
+        releasableTokens[msg.sender][originToken] = 0;
 
-        emit TokenReleased(msg.sender, originalToken, amount);
+        emit TokenReleased(msg.sender, originToken, amount);
     }
 
-    function addClaimableToken(
-        address claimer,
-        uint256 sourceChainId,
-        address token,
-        uint256 amount
-    ) public onlyOwner {
+    function setFeePercentage(uint8 _feePercentage) external onlyOwner {
+        feePercentage = _feePercentage;
+    }
+
+    function setWrappedTokenFactory(address _wrappedTokenFactory) external onlyOwner {
+        wrappedTokenFactory = IWrappedTokenFactory(_wrappedTokenFactory);
+    }
+
+    function addClaimableToken(address claimer, uint sourceChainId, address token, uint amount) public onlyOwner {
         claimableTokens[claimer][sourceChainId][token] += amount;
     }
 
-    function addReleasableToken(
-        address releaser,
-        address token,
-        uint256 amount
-    ) public onlyOwner {
+    function addReleasableToken(address releaser, address token, uint amount) public onlyOwner {
         releasableTokens[releaser][token] += amount;
     }
 
-    function withdrawTokenFee(
-        address token,
-        uint256 amount,
-        address recipient
-    ) external onlyOwner {
+    function addTokenSymbol(uint chainId, address token, string calldata tokenSymbol) public onlyOwner {
+        tokenSymbolByOriginTokenByChain[chainId][token] = tokenSymbol;
+    }
+
+    function addTokenName(uint chainId, address token, string calldata tokenName) public onlyOwner {
+        tokenSymbolByOriginTokenByChain[chainId][token] = tokenName;
+    }
+
+    function withdrawTokenFee(address token, uint amount, address recipient) external onlyOwner {
         IERC20(token).transfer(recipient, amount);
     }
 
-    function _createWrappedToken(address originalTokenAddress) internal returns (address) {
-        ERC20 originalToken = ERC20(originalTokenAddress);
-        string memory tokenName = originalToken.name();
-        string memory tokenSymbol = originalToken.symbol();
+    function getClaimableTokens() external returns {
+        retu
+    }
 
-        address wrappedTokenAddress = wrappedTokenFactory.createWrappedToken(tokenName,tokenSymbol);
+    function _createWrappedToken(uint chainId, address originTokenAddress) internal returns (address) {
+        string memory tokenName = tokenNameByOriginTokenByChain[chainId][originTokenAddress];
+        string memory tokenSymbol = tokenSymbolByOriginTokenByChain[chainId][originTokenAddress];
+
+        address wrappedTokenAddress = wrappedTokenFactory.createWrappedToken(
+            tokenName,
+            tokenSymbol
+        );
 
         return wrappedTokenAddress;
     }
 
-    function _mapTokens(
-        uint256 sourceChainId,
-        address originalToken,
-        address wrappedToken
-    ) internal {
-        wrappedTokenByOriginTokenByChain[sourceChainId][originalToken] = wrappedToken;
-        originTokenByWrappedTokenByChain[sourceChainId][wrappedToken] = originalToken;
+    function _mapTokens(uint sourceChainId, address originToken, address wrappedToken) internal {
+        wrappedTokenByOriginTokenByChain[sourceChainId][originToken] = wrappedToken;
+        originTokenByWrappedTokenByChain[sourceChainId][wrappedToken] = originToken;
     }
 
-    function _tokenKnown(uint256 sourceChainId, address originalTokenAddress) internal view returns (bool) {
-        return (wrappedTokenByOriginTokenByChain[sourceChainId][originalTokenAddress] != NULL_ADDRESS);
+    function _tokenKnown(uint sourceChainId, address originTokenAddress) internal view returns (bool) {
+        return (wrappedTokenByOriginTokenByChain[sourceChainId][
+            originTokenAddress
+        ] != NULL_ADDRESS);
     }
 }

@@ -5,13 +5,13 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 import { time } from "@nomicfoundation/hardhat-toolbox/network-helpers"
 import { Typed, BigNumberish, AddressLike } from "ethers";
-import { IERC20__factory, ERC20__factory } from "../../typechain-types";
+import { IERC20__factory, ERC20__factory, WrappedTokenFactory__factory } from "../../typechain-types";
 
 describe("Bridge", function () {
     this.timeout(0);
 
     let bridgeFactory;
-    let wrappedTokenFactoryFactory;
+    let wrappedTokenFactoryFactory: WrappedTokenFactory__factory;
     let myTokenFactory;
     let sourceBridge: Bridge;
     let targetBridge: Bridge;
@@ -184,6 +184,26 @@ describe("Bridge", function () {
 
     });
 
+    it("Should  set the wrappedTokenFactory to the provided wrappedTokenFactory", async function () {
+        const [owner] = await ethers.getSigners();
+        const newWrappedTokenFactory = await wrappedTokenFactoryFactory.deploy();
+        await newWrappedTokenFactory.waitForDeployment();
+
+        const currentWrappedTokenFactory = sourceBridge.connect(owner).wrappedTokenFactory;
+        
+        expect(sourceBridge.connect(owner).wrappedTokenFactory).to.not.equal(newWrappedTokenFactory);
+
+        await (await sourceBridge.connect(owner).setWrappedTokenFactory(newWrappedTokenFactory.getAddress())).wait();
+
+        expect(sourceBridge.connect(owner).wrappedTokenFactory).to.not.equal(currentWrappedTokenFactory);
+    });
+
+    it("Should revert with not owner when user,different from the owner calls setWrappedTokenFactory", async function () {
+        const [owner, user] = await ethers.getSigners();
+        const wrappedTokenFactoryAddress = user.address;
+        await expect(sourceBridge.connect(user).setWrappedTokenFactory(wrappedTokenFactoryAddress)).to.revertedWith('Ownable: caller is not the owner');
+    });
+
     it("Should revert with not owner when user,different from the owner calls setFeePercantage", async function () {
         const [owner, user] = await ethers.getSigners();
         const feePercentage = 10;
@@ -307,7 +327,7 @@ describe("Bridge", function () {
     it("Should revert with not owner when user,different from the owner calls addTokenSymbol", async function () {
         const [owner, user] = await ethers.getSigners();
         const tokenName = "name";
-        
+
         await expect(sourceBridge.connect(user).addTokenName(user.address, myTokenAddress,tokenName)).to.revertedWith('Ownable: caller is not the owner');
     });
 

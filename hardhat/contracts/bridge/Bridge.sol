@@ -37,6 +37,7 @@ contract Bridge is Ownable {
     );
     event TokenClaimed(
         address claimerAddress,
+        address originTokenAddress,
         address wrappedTokenAddress,
         uint amount
     );
@@ -134,7 +135,7 @@ contract Bridge is Ownable {
 
         claimableTokens[msg.sender][sourceChainId][token] = 0;
 
-        emit TokenClaimed(msg.sender, wrappedToken, amount);
+        emit TokenClaimed(msg.sender, token, wrappedToken, amount);
     }
 
     function burnToken(
@@ -198,10 +199,6 @@ contract Bridge is Ownable {
 
     function withdrawTokenFee(address token, uint amount, address recipient) external onlyOwner {
         IERC20(token).transfer(recipient, amount);
-    }
-
-    function getClaimableTokens() external returns {
-        retu
     }
 
     function _createWrappedToken(uint chainId, address originTokenAddress) internal returns (address) {
